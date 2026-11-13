@@ -2,6 +2,8 @@
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   let IDX = null, PAGES = [], BYROUTE = {}, SEARCH = null;
+  let LANG = 'en';
+  try { LANG = localStorage.getItem('econ-lang') === 'zh' ? 'zh' : 'en'; } catch {}
 
   // ---------- theme
   const themeBtn = $('#theme');
@@ -113,13 +115,21 @@
     const crumbs = [`<a href="#/">全部领域</a>`, `<a href="#/${p.sec.slug}">${esc(p.sec.title)}</a>`];
     if (p.sub && p.kind !== 'subsection') crumbs.push(`<span>${esc(p.sub.title)}</span>`);
     const title = p.label === 'Overview' ? `${esc((p.sub || p.sec).title)} <small>Overview</small>` : esc(p.title);
-    const heads = (p.heads || []).length > 2 ? `<div class="qnav">${p.heads.map(([id, t]) => `<a data-jump="${id}">${esc(t)}</a>`).join('')}</div>` : '';
+    const zh = !!p.zh && LANG === 'zh';
+    const hl = zh ? p.zh : (p.heads || []);
+    const heads = hl.length > 2 ? `<div class="qnav">${hl.map(([id, t]) => `<a data-jump="${id}">${esc(t)}</a>`).join('')}</div>` : '';
+    const langBtn = p.zh ? `<button type="button" class="lang-toggle" id="lang-toggle" title="${zh ? 'Switch to English' : '切换到中文版本'}">${zh ? 'English' : '中文版'}</button>` : '';
     $('#content').innerHTML = `<div class="crumbs">${crumbs.join(' › ')}</div><h1 class="page-title"><span class="code">${p.label === 'Overview' ? (p.sub || p.sec).num : p.num}</span>${title}</h1>
-      <div class="page-meta">${p.eqs ? `${p.eqs} 个编号公式` : ''}${p.eqs && p.refs ? ' · ' : ''}${p.refs ? `${p.refs} 篇参考文献` : ''}</div>${heads}
+      <div class="page-meta"><span>${p.eqs ? `${p.eqs} 个编号公式` : ''}${p.eqs && p.refs ? ' · ' : ''}${p.refs ? `${p.refs} 篇参考文献` : ''}</span>${langBtn}</div>${heads}
       <article class="note" id="note"><p class="muted">正在读取…</p></article>
       <div class="pager">${prev ? `<a href="#/${prev.route}" class="prev"><small>← 上一篇</small>${esc(prev.label === 'Overview' ? (prev.sub || prev.sec).title + ' · Overview' : prev.title)}</a>` : '<span></span>'}${next ? `<a href="#/${next.route}" class="next"><small>下一篇 →</small>${esc(next.label === 'Overview' ? (next.sub || next.sec).title + ' · Overview' : next.title)}</a>` : '<span></span>'}</div>`;
+    if (p.zh) $('#lang-toggle').addEventListener('click', () => {
+      LANG = zh ? 'en' : 'zh';
+      try { localStorage.setItem('econ-lang', LANG); } catch {}
+      page(route);
+    });
     try {
-      const r = await fetch(`notes/${route}.html`);
+      const r = await fetch(`notes/${route}${zh ? '.zh' : ''}.html`);
       const html = await r.text();
       const note = $('#note');
       note.innerHTML = html.trim() ? html : '<p class="empty">这一节的笔记待补充。</p>';
