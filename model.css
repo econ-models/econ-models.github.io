@@ -138,3 +138,34 @@ table.vartab tbody tr+tr td{border-top:1px solid rgba(0,0,0,.06)}
 /* language toggle */
 .lang-toggle{margin-left:auto;border:1px solid var(--accent);background:var(--panel);color:var(--accent);border-radius:4px;padding:2px 12px;font-size:12px;line-height:1.6;white-space:nowrap}
 .lang-toggle:hover{background:var(--soft)}
+
+/* derivations: clickable equations + right-side panel */
+.eq.has-deriv{cursor:pointer;border-left:2px solid color-mix(in srgb,var(--accent) 35%,transparent);padding-left:10px;margin-left:-12px;border-radius:0 4px 4px 0;transition:background .15s,border-color .15s;outline:none}
+.eq.has-deriv:hover,.eq.has-deriv:focus-visible{background:var(--soft);border-left-color:var(--accent)}
+.eq.has-deriv.deriv-active{background:var(--soft);border-left:3px solid var(--accent)}
+.deriv-hint{color:var(--accent)}
+#deriv-panel{position:fixed;top:0;right:0;height:100vh;width:min(580px,44vw);background:var(--panel);border-left:1px solid var(--line);box-shadow:-10px 0 28px rgba(0,0,0,.08);transform:translateX(102%);transition:transform .22s ease;z-index:60;display:flex;flex-direction:column}
+body.deriv-open #deriv-panel{transform:none}
+.dp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 18px 12px 22px;border-bottom:1.5px solid var(--text)}
+.dp-title{display:flex;align-items:baseline;gap:10px}
+.dp-label{font:600 18px var(--serif)}
+.dp-tag{font:13px var(--serif);color:var(--accent)}
+.dp-nav{display:flex;gap:6px}
+.dp-nav button{width:30px;height:30px;border:1px solid var(--line);background:var(--panel);color:var(--text);border-radius:4px;font-size:17px;line-height:1;cursor:pointer}
+.dp-nav button:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+.dp-nav button:disabled{opacity:.35;cursor:default}
+.dp-body{overflow:auto;padding:16px 22px 40px;flex:1;scrollbar-width:thin}
+.dp-target{background:var(--soft);border-left:3px solid var(--accent);border-radius:0 4px 4px 0;padding:2px 12px;margin-bottom:16px;overflow-x:auto}
+.dp-target .katex-display{margin:.5em 0}
+.dp-target .tag{display:none}
+.dp-steps{font-size:14.5px;line-height:1.8;max-width:none}
+.dp-steps .eq{margin:2px 0 10px}
+.dp-steps .katex{font-size:1.04em}
+@media(min-width:1100px){
+  body.deriv-open #main,body.deriv-open header .wrap,body.deriv-open footer.wrap{max-width:none;margin-right:min(580px,44vw);margin-left:0;transition:margin .22s}
+}
+@media(min-width:1100px) and (max-width:1699px){
+  body.deriv-open .model-ws{grid-template-columns:minmax(0,1fr)}
+  body.deriv-open #aside{display:none}
+}
+@media(max-width:800px){#deriv-panel{width:100vw}}

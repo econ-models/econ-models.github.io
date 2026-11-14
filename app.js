@@ -109,6 +109,7 @@
   const meta = p => p.empty ? '<small class="pm">待补充</small>' : `<small class="pm">${p.eqs ? p.eqs + ' 个公式' : ''}${p.eqs && p.refs ? ' · ' : ''}${p.refs ? p.refs + ' 篇文献' : ''}</small>`;
 
   async function page(route, anchor) {
+    closeDeriv();
     const p = BYROUTE[route];
     if (!p) { $('#content').innerHTML = '<p class="empty">未找到该页面。<a href="#/">返回首页</a></p>'; return; }
     const prev = PAGES[p.i - 1], next = PAGES[p.i + 1];
@@ -120,7 +121,7 @@
     const heads = hl.length > 2 ? `<div class="qnav">${hl.map(([id, t]) => `<a data-jump="${id}">${esc(t)}</a>`).join('')}</div>` : '';
     const langBtn = p.zh ? `<button type="button" class="lang-toggle" id="lang-toggle" title="${zh ? 'Switch to English' : '切换到中文版本'}">${zh ? 'English' : '中文版'}</button>` : '';
     $('#content').innerHTML = `<div class="crumbs">${crumbs.join(' › ')}</div><h1 class="page-title"><span class="code">${p.label === 'Overview' ? (p.sub || p.sec).num : p.num}</span>${title}</h1>
-      <div class="page-meta"><span>${p.eqs ? `${p.eqs} 个编号公式` : ''}${p.eqs && p.refs ? ' · ' : ''}${p.refs ? `${p.refs} 篇参考文献` : ''}</span>${langBtn}</div>${heads}
+      <div class="page-meta"><span>${p.eqs ? `${p.eqs} 个编号公式` : ''}${p.eqs && p.refs ? ' · ' : ''}${p.refs ? `${p.refs} 篇参考文献` : ''}${p.derivs ? ` · <span class="deriv-hint">${p.derivs} 个公式附推导，点击公式查看</span>` : ''}</span>${langBtn}</div>${heads}
       <article class="note" id="note"><p class="muted">正在读取…</p></article>
       <div class="pager">${prev ? `<a href="#/${prev.route}" class="prev"><small>← 上一篇</small>${esc(prev.label === 'Overview' ? (prev.sub || prev.sec).title + ' · Overview' : prev.title)}</a>` : '<span></span>'}${next ? `<a href="#/${next.route}" class="next"><small>下一篇 →</small>${esc(next.label === 'Overview' ? (next.sub || next.sec).title + ' · Overview' : next.title)}</a>` : '<span></span>'}</div>`;
     if (p.zh) $('#lang-toggle').addEventListener('click', () => {
@@ -175,6 +176,71 @@
       target.scrollIntoView({ behavior: 'smooth', block: a.dataset.jump ? 'start' : 'center' });
       target.classList.remove('flash'); void target.offsetWidth; target.classList.add('flash');
     }
+  });
+
+  // ---------- derivation side panel (click a numbered equation that has a derivation)
+  let DERIV_EQ = null;
+  function derivPanel() {
+    let el = document.getElementById('deriv-panel');
+    if (el) return el;
+    el = document.createElement('aside');
+    el.id = 'deriv-panel'; el.setAttribute('aria-hidden', 'true'); el.setAttribute('aria-label', '公式推导');
+    el.innerHTML = `<div class="dp-head"><div class="dp-title"><span class="dp-label">推导</span><span class="dp-tag"></span></div>
+      <div class="dp-nav"><button type="button" class="dp-prev" title="上一个推导">‹</button><button type="button" class="dp-next" title="下一个推导">›</button><button type="button" class="dp-close" title="关闭 (Esc)">×</button></div></div>
+      <div class="dp-body"><div class="dp-target"></div><div class="dp-steps note"></div></div>`;
+    document.body.appendChild(el);
+    el.querySelector('.dp-close').addEventListener('click', closeDeriv);
+    el.querySelector('.dp-prev').addEventListener('click', () => stepDeriv(-1));
+    el.querySelector('.dp-next').addEventListener('click', () => stepDeriv(1));
+    return el;
+  }
+  function derivEqs() { return [...document.querySelectorAll('#note .eq.has-deriv')]; }
+  function openDeriv(eq) {
+    const k = eq.dataset.eq;
+    const src = document.querySelector(`#note .deriv-store .deriv[data-k="${k}"]`);
+    if (!src) return;
+    const el = derivPanel();
+    if (DERIV_EQ) DERIV_EQ.classList.remove('deriv-active');
+    DERIV_EQ = eq; eq.classList.add('deriv-active');
+    const tag = eq.querySelector('.tag');
+    el.querySelector('.dp-tag').textContent = tag ? tag.textContent.trim() : '(' + k + ')';
+    el.querySelector('.dp-target').innerHTML = eq.innerHTML;
+    el.querySelector('.dp-steps').innerHTML = src.innerHTML;
+    const all = derivEqs(), i = all.indexOf(eq);
+    el.querySelector('.dp-prev').disabled = i <= 0;
+    el.querySelector('.dp-next').disabled = i >= all.length - 1;
+    el.querySelector('.dp-body').scrollTop = 0;
+    el.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('deriv-open');
+    setTimeout(() => {  // after the layout transition
+      if (DERIV_EQ !== eq) return;
+      const r = eq.getBoundingClientRect();
+      if (r.top < 60 || r.bottom > innerHeight - 40) eq.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 260);
+  }
+  function stepDeriv(d) {
+    const all = derivEqs(), i = all.indexOf(DERIV_EQ);
+    const t = all[i + d]; if (t) openDeriv(t);
+  }
+  function closeDeriv() {
+    if (DERIV_EQ) DERIV_EQ.classList.remove('deriv-active');
+    DERIV_EQ = null;
+    document.body.classList.remove('deriv-open');
+    const el = document.getElementById('deriv-panel');
+    if (el) el.setAttribute('aria-hidden', 'true');
+  }
+  document.addEventListener('click', e => {
+    if (e.target.closest('a, button, #deriv-panel')) return;
+    const eq = e.target.closest('#note .eq.has-deriv');
+    if (!eq) return;
+    if (window.getSelection && String(window.getSelection()).length) return;  // let users select math text
+    if (eq === DERIV_EQ) closeDeriv(); else openDeriv(eq);
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && DERIV_EQ) { closeDeriv(); return; }
+    const eq = e.target.closest && e.target.closest('#note .eq.has-deriv');
+    if (eq && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openDeriv(eq); }
+    if (DERIV_EQ && document.activeElement.tagName !== 'INPUT' && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && e.altKey) { e.preventDefault(); stepDeriv(e.key === 'ArrowDown' ? 1 : -1); }
   });
 
   // ---------- router
