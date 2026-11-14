@@ -121,7 +121,7 @@
     const heads = hl.length > 2 ? `<div class="qnav">${hl.map(([id, t]) => `<a data-jump="${id}">${esc(t)}</a>`).join('')}</div>` : '';
     const langBtn = p.zh ? `<button type="button" class="lang-toggle" id="lang-toggle" title="${zh ? 'Switch to English' : '切换到中文版本'}">${zh ? 'English' : '中文版'}</button>` : '';
     $('#content').innerHTML = `<div class="crumbs">${crumbs.join(' › ')}</div><h1 class="page-title"><span class="code">${p.label === 'Overview' ? (p.sub || p.sec).num : p.num}</span>${title}</h1>
-      <div class="page-meta"><span>${p.eqs ? `${p.eqs} 个编号公式` : ''}${p.eqs && p.refs ? ' · ' : ''}${p.refs ? `${p.refs} 篇参考文献` : ''}${p.derivs ? ` · <span class="deriv-hint">${p.derivs} 个公式附推导，点击公式查看</span>` : ''}</span>${langBtn}</div>${heads}
+      <div class="page-meta"><span>${p.eqs ? `${p.eqs} 个编号公式` : ''}${p.eqs && p.refs ? ' · ' : ''}${p.refs ? `${p.refs} 篇参考文献` : ''}${p.derivs || p.expls ? ` · <span class="deriv-hint">点击公式查看${[p.derivs ? `推导（${p.derivs}）` : '', p.expls ? `解释（${p.expls}）` : ''].filter(Boolean).join('或')}</span>` : ''}</span>${langBtn}</div>${heads}
       <article class="note" id="note"><p class="muted">正在读取…</p></article>
       <div class="pager">${prev ? `<a href="#/${prev.route}" class="prev"><small>← 上一篇</small>${esc(prev.label === 'Overview' ? (prev.sub || prev.sec).title + ' · Overview' : prev.title)}</a>` : '<span></span>'}${next ? `<a href="#/${next.route}" class="next"><small>下一篇 →</small>${esc(next.label === 'Overview' ? (next.sub || next.sec).title + ' · Overview' : next.title)}</a>` : '<span></span>'}</div>`;
     if (p.zh) $('#lang-toggle').addEventListener('click', () => {
@@ -203,6 +203,7 @@
     if (DERIV_EQ) DERIV_EQ.classList.remove('deriv-active');
     DERIV_EQ = eq; eq.classList.add('deriv-active');
     const tag = eq.querySelector('.tag');
+    el.querySelector('.dp-label').textContent = eq.dataset.kind === 'explanation' ? '解释' : '推导';
     el.querySelector('.dp-tag').textContent = tag ? tag.textContent.trim() : '(' + k + ')';
     el.querySelector('.dp-target').innerHTML = eq.innerHTML;
     el.querySelector('.dp-steps').innerHTML = src.innerHTML;
