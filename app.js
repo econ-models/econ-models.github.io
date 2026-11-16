@@ -143,7 +143,7 @@
   async function runSearch(q) {
     q = q.trim();
     if (!q) { route(); return; }
-    if (!SEARCH) SEARCH = await (await fetch('search.json')).json();
+    if (!SEARCH) SEARCH = await (await fetch('search.json', { cache: 'no-cache' })).json();
     const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
     const res = [];
     for (const it of SEARCH) {
@@ -262,6 +262,6 @@
   }
   window.addEventListener('hashchange', () => { $('#search').value = ''; route(); });
 
-  fetch('notes/index.json').then(r => r.json()).then(d => { IDX = d; flatten(); route(); })
+  fetch('notes/index.json', { cache: 'no-cache' }).then(r => r.json()).then(d => { IDX = d; flatten(); route(); })
     .catch(() => { $('#content').innerHTML = '<p class="empty">目录读取失败，请通过本地服务器或 GitHub Pages 访问。</p>'; });
 })();
